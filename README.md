@@ -11,7 +11,7 @@ An additional 32 instructions that can be emulated by using existing instruction
 
 A common instruction format, containing an opcode and one or two operand addresses (for arithmetic and logical instructions) or a signed 10-bit offset (for jump instructions).
 
-Eight 16-bit registers: four special purpose (program counter, stack pointer, program status word, and link register) and four general purpose (for data, addressing, or both).
+Sixteen 16-bit registers: four special purpose (program counter, stack pointer, program status word, and link register) and four general purpose (for data, addressing, or both).
 
 Four addressing modes (register, register with pre- and post- auto-increment and auto-decrement, register-relative, and immediate).
 A 16-bit data/address bus, allowing up to 64 KiB of random-access memory.
