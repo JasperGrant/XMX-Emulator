@@ -1,0 +1,141 @@
+X-Makina Assembler - Version XMX Assembler - Release 22.05.10.00
+Input file name: PolledKB.asm
+Time of assembly: Tue 26 Jul 2022 00:14:27 
+  1	    	     	;
+  2	    	     	; Input and Output
+  3	    	     	;
+  4	    	     	; Device polling - example KB input and SCR output
+  5	    	     	; Echo each character read, stop on 'Z'
+  6	    	     	; R0 - base address (KbCSR address 0002)
+  7	    	     	; R1 - character read/written
+  8	    	     	; R2 - scratch register
+  9	    	     	;
+ 10	    	     	; ECED 3403
+ 11	    	     	; 21 Jun 2022 - XMX upgrade
+ 12	    	     	; 25 Mar 2020 - XM3 upgrade
+ 13	    	     	;  8 May 2019 - Initial version
+ 14	    	     	;
+ 15	    	     	; Device register structure:
+ 16	    	     	;
+ 17	    	     	;           7  6  5    4    3     2     1     0
+ 18	    	     	; nnnn   | Reserved | ENA | OF | DBA | I/O | IE | Control/Status
+ 19	    	     	; nnnn+1 |                Data                  | Data
+ 20	    	     	;
+ 21	    	     	; KB and SCR control bits (OF, DBA, and IE = 0):
+ 22	    	     	;
+ 23	    	     	KB_SET	equ	#12	; KB initialization: ENA=1 I/O=1
+ 24	    	     	SCR_SET	equ	#10	; SCR initialization: ENA=1 I/O=0 
+ 25	    	     	;
+ 26	    	     	; KB and SCR status bits (check on poll):
+ 27	    	     	;
+ 28	    	     	KB_DBA	equ	#4	; KB - data byte available status bit (input)
+ 29	    	     	SCR_DBA	equ	#4	; SCR - data buffer available status bit (output)
+ 30	    	     	;
+ 31	    	     		org	#2
+ 32	    	     	;
+ 33	    	     	; Clock control/status and count registers are ignored
+ 34	    	     	;
+ 35	0002	0000	KbCSR	bss	#1	; Keyboard control/status register
+ 36	0003	0000	KbDR	bss	#1	; Keyboard data register (input)
+ 37	0004	0000	ScrCSR	bss	#1	; Screen control/status register
+ 38	0005	0000	ScrDR	bss	#1	; Screen data register (output)
+ 39	    	     	;
+ 40	    	     		org	#1000
+ 41	    	     	Start
+ 42	1000	9810		movlz	KbCSR,A0	; A0 - address of KbSCR (base addr)
+ 43	    	     	;
+ 44	    	     	; Initialize KB and SCR
+ 45	1002	8092		movl	KB_SET,R2	; R2 = KB init bits
+ 46	1004	4950		st.b	R2,A0		; KB SCR = ENA and Input
+ 47	1006	8082		movl	SCR_SET,R2	; R2 = SCR init bits
+ 48	1008	E150		str.b	R2,A0,$2	; SCR CSR (A0 base addr + 2) = ENA and Output
+ 49	    	     	;
+ 50	    	     	; Input-output loop - repeat until 'Z' entered
+ 51	    	     	;
+ 52	    	     	; InLoop waits for character to be entered
+ 53	    	     	; Read KB status register until DBA (data byte available) is set
+ 54	    	     	;
+ 55	    	     	InLoop	
+ 56	100A	4102		ld	A0,R2		; Check DBA (clear until data)
+ 57	100C	379A		and	KB_DBA,R2	; If zero, repeat
+ 58	    	     	;
+ 59	    	     	; Repeat KB status poll (DBA) if data byte not available
+ 60	    	     	; 
+ 61	100E	2408		cex	eq,$1,$0
+ 62	1010	23FC		br	InLoop		; Goto InLoop if DBA = 0
+ 63	    	     	;
+ 64	    	     	; Data byte available - read KbDR
+ 65	    	     	;
+ 66	1012	C0C1		ldr.b	A0,#1,R1	; R1 = kb input (ch)
+ 67	    	     	;
+ 68	1014	E1C8		str.b	R1,A0,#3	; ScrDR (KbCSR+3) = R1 (ch)
+ 69	    	     	;
+ 70	    	     	; Wait until output completed
+ 71	    	     	; Poll output DBA (data buffer available)
+ 72	    	     	;
+ 73	    	     	OutLoop
+ 74	1016	C142		ldr.b	A0,#2,R2	; R2 = ScrCSR
+ 75	1018	37DA		and.b	SCR_DBA,R2	; Is DBA set?
+ 76	    	     	;
+ 77	    	     	; Repeat SCR status poll (DBA) if data buffer not available
+ 78	    	     	;
+ 79	101A	2408		cex	eq,$1,$0
+ 80	101C	23FC		br	OutLoop		; Goto OutLoop if DBA = 0
+ 81	    	     	;
+ 82	    	     	; Output done
+ 83	    	     	; Check for 'Z'
+ 84	    	     	;
+ 85	101E	92D2		movlz	'Z',R2
+ 86	1020	3551		cmp.b	R2,R1
+ 87	    	     	;
+ 88	    	     	; Repeat input-output if not 'Z'
+ 89	    	     	;
+ 90	1022	2448		cex	ne,$1,$0
+ 91	1024	23F2		br 	InLoop		; Goto InLoop if R2 <> 0
+ 92	    	     	;
+ 93	    	     	; All done - Wait for ^C or breakpoint
+ 94	    	     	;
+ 95	    	     	DoneLoop
+ 96	1026	23FF		br	DoneLoop
+ 97	    	     	;
+ 98	    	     		end	Start
+
+Successful completion of assembly - 1P
+
+** Symbol table **
+Name                               	Type	Value	Decimal
+DoneLoop                           	REL	1026	4134	PRI
+OutLoop                            	REL	1016	4118	PRI
+InLoop                             	REL	100A	4106	PRI
+Start                              	REL	1000	4096	PRI
+ScrDR                              	REL	0005	5	PRI
+ScrCSR                             	REL	0004	4	PRI
+KbDR                               	REL	0003	3	PRI
+KbCSR                              	REL	0002	2	PRI
+SCR_DBA                            	CON	0004	4	PRI
+KB_DBA                             	CON	0004	4	PRI
+SCR_SET                            	CON	0010	16	PRI
+KB_SET                             	CON	0012	18	PRI
+PC                                 	AREG	000F	15	PRI
+SP                                 	AREG	000E	14	PRI
+LR                                 	AREG	000D	13	PRI
+BP                                 	AREG	000C	12	PRI
+A7                                 	AREG	000F	15	PRI
+A6                                 	AREG	000E	14	PRI
+A5                                 	AREG	000D	13	PRI
+A4                                 	AREG	000C	12	PRI
+A3                                 	AREG	000B	11	PRI
+A2                                 	AREG	000A	10	PRI
+A1                                 	AREG	0009	9	PRI
+A0                                 	AREG	0008	8	PRI
+R7                                 	DREG	0007	7	PRI
+R6                                 	DREG	0006	6	PRI
+R5                                 	DREG	0005	5	PRI
+R4                                 	DREG	0004	4	PRI
+R3                                 	DREG	0003	3	PRI
+R2                                 	DREG	0002	2	PRI
+R1                                 	DREG	0001	1	PRI
+R0                                 	DREG	0000	0	PRI
+
+.XME file: C:\Users\Jasper Grant\Documents\ComputerArchitecture\Assignment-1\cmake-build-debug\PolledKB.xme
+

@@ -1,0 +1,70 @@
+X-Makina Assembler - Version XMX Assembler - Release 22.05.10.00
+Input file name: newinstructions.asm
+Time of assembly: Tue 26 Jul 2022 13:18:15 
+  1	    	     	;Assembly code to test new instructions
+  2	    	     	;
+  3	    	     	;Put interrupts into table
+  4	    	     	org #FFC2
+  5	FFC2	00E0		WORD #00E0
+  6	FFC4	6660		WORD #6660
+  7	    	     	org #FFE8
+  8	FFE8	00E0		WORD #00E0
+  9	FFEA	5660		WORD #5660
+ 10	    	     	;
+ 11	    	     	;Interrupts called
+ 12	    	     	org #6660
+ 13	6660	9809		MOVLZ #01,A1
+ 14	6662	3DAF		MOV LR,PC
+ 15	    	     	org #5660
+ 16	5660	980B		MOVLZ #01,A3
+ 17	5662	3DAF		MOV LR,PC
+ 18	    	     	;
+ 19	    	     	;Main code
+ 20	    	     	org #1000
+ 21	    	     	;Put space on stack
+ 22	1000	8FFE		MOVL #ff,SP
+ 23	    	     	;
+ 24	1002	2812		SETPRI #2
+ 25	1004	9808		MOVLZ #01,A0
+ 26	1006	2821		SVC #1
+ 27	1008	980A		MOVLZ #01,A2
+ 28	    	     	;
+ 29	    	     	;Set breakpoint for 100A
+ 30	    	     	;A0, A1, and A2 should be 1
+ 31	    	     	;
+ 32	100A	2857	    SETCC CZNV
+ 33	    	     	;Set breakpoint for 100C to see all PSW bits except for SLP set
+ 34	100C	2877	    CLRCC CZNV
+ 35	    	     	;Set breakpoint for 100E to see all PSW bits except for SLP cleared
+ 36	    	     	
+ 37	100E	23FF		Done BR Done
+ 38	    	     	
+ 39	    	     	end #1000
+Successful completion of assembly - 1P
+
+** Symbol table **
+Name                               	Type	Value	Decimal
+Done                               	REL	100E	4110	PRI
+PC                                 	AREG	000F	15	PRI
+SP                                 	AREG	000E	14	PRI
+LR                                 	AREG	000D	13	PRI
+BP                                 	AREG	000C	12	PRI
+A7                                 	AREG	000F	15	PRI
+A6                                 	AREG	000E	14	PRI
+A5                                 	AREG	000D	13	PRI
+A4                                 	AREG	000C	12	PRI
+A3                                 	AREG	000B	11	PRI
+A2                                 	AREG	000A	10	PRI
+A1                                 	AREG	0009	9	PRI
+A0                                 	AREG	0008	8	PRI
+R7                                 	DREG	0007	7	PRI
+R6                                 	DREG	0006	6	PRI
+R5                                 	DREG	0005	5	PRI
+R4                                 	DREG	0004	4	PRI
+R3                                 	DREG	0003	3	PRI
+R2                                 	DREG	0002	2	PRI
+R1                                 	DREG	0001	1	PRI
+R0                                 	DREG	0000	0	PRI
+
+.XME file: C:\Users\Jasper Grant\Documents\ComputerArchitecture\Assignment-1\cmake-build-debug\newinstructions.xme
+

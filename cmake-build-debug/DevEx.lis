@@ -1,0 +1,275 @@
+X-Makina Assembler - Version XMX Assembler - Release 22.05.10.00
+Input file name: DevEx.asm
+Time of assembly: Tue 26 Jul 2022 13:25:27 
+  1	    	     	;
+  2	    	     	; Device example:
+  3	    	     	; Enabling and polling
+  4	    	     	; ECED 3403
+  5	    	     	; 
+  6	    	     	;
+  7	    	     	; Device register structure:
+  8	    	     	;
+  9	    	     	;           7  6  5    4    3     2     1     0
+ 10	    	     	; nnnn   | Reserved | ENA | OF | DBA | I/O | IE | Control/Status
+ 11	    	     	; nnnn+1 |                Data                  | Data
+ 12	    	     	;
+ 13	    	     	;
+ 14	    	     	; CLK, KB, and SCR control bits (ENA and IE = 0):
+ 15	    	     	; Set or clear to initialize device
+ 16	    	     	; I/O bit is assigned by device
+ 17	    	     	;
+ 18	    	     	CLKdis	equ	#0	; CLK disable
+ 19	    	     	CLKena	equ	#10	; CLK enable
+ 20	    	     	KBinit	equ	#12	; KB enable: ENA=1
+ 21	    	     	SCRinit	equ	#10	; SCR enable: ENA=1
+ 22	    	     	;
+ 23	    	     	; KB and SCR status bits (check on poll using BIT):
+ 24	    	     	;
+ 25	    	     	CLKdba	equ	#2	; CLK - time limit reached
+ 26	    	     	KBdba	equ	#2	; KB - data byte available status bit (input)
+ 27	    	     	SCRdba	equ	#2	; SCR - data buffer available status bit (output)
+ 28	    	     	;
+ 29	    	     		org	#0
+ 30	    	     	;
+ 31	    	     	; Device control/status and count registers 
+ 32	    	     	;
+ 33	0000	0000	ClkCSR	bss	#1	; Clock control/status register
+ 34	0001	0000	ClkDR	bss	#1	; Clock data register (write)
+ 35	0002	0000	KbCSR	bss	#1	; Keyboard control/status register
+ 36	0003	0000	KbDR	bss	#1	; Keyboard data register (read)
+ 37	0004	0000	ScrCSR	bss	#1	; Screen control/status register
+ 38	0005	0000	ScrDR	bss	#1	; Screen data register (write)
+ 39	    	     	;
+ 40	    	     	; **********************************************
+ 41	    	     	;
+ 42	    	     	; Device programming examples
+ 43	    	     	; Set PC to starting address
+ 44	    	     	;
+ 45	    	     	; **********************************************
+ 46	    	     	; 
+ 47	    	     	; Keyboard example
+ 48	    	     	; Set PC to #1000
+ 49	    	     	;
+ 50	    	     		org	#1000
+ 51	    	     	KBStart
+ 52	    	     	;
+ 53	    	     	; Initialize device (Enable and Input)
+ 54	    	     	; Poll until data available 
+ 55	    	     	;
+ 56	1000	9810		movlz	KbCSR,A0	; A0 <- addr KbCSR (0002)
+ 57	    	     	;
+ 58	    	     	; Initialize device
+ 59	    	     	;
+ 60	1002	9090		movlz	KBinit,R0	; R0 <- KBinit (ENA=1, I/O=1)
+ 61	1004	4940		st.b	R0,A0		; [KbCSR] <- KBinit
+ 62	    	     	;
+ 63	    	     	; Poll for input
+ 64	    	     	; Count number of times through loop
+ 65	    	     	;
+ 66	1006	9002		movlz	#0,R2		; R2 <- 0 (poll count)
+ 67	    	     	;
+ 68	    	     	; DBA = 0: KB does not have data
+ 69	    	     	; DBA = 1: KB has data
+ 70	    	     	;
+ 71	    	     	KBPoll
+ 72	1008	4140		ld.b	A0,R0		; R0 <- [KbCSR]
+ 73	100A	3990		bit	KBdba,R0	; KB DBA set?
+ 74	100C	2410		cex	EQ,$2,$0	; Equal to zero?
+ 75	100E	318A		add	#1,R2		; 0: Incr poll count
+ 76	1010	23FB		br	KBPoll		; 0: repeat poll
+ 77	    	     	;
+ 78	    	     	; KB data exists, read KBDR (KbCSR + 1)
+ 79	    	     	;
+ 80	1012	C0C1		ldr.b	A0,$1,R1	; R1 <- [KbCSR]
+ 81	    	     	;
+ 82	    	     	KBDone
+ 83	1014	23FF		br	KBDone		; Put Breakpoint here, Check R1, R2
+ 84	    	     	;
+ 85	    	     	; **********************************************
+ 86	    	     	;
+ 87	    	     	; Screen example
+ 88	    	     	; Set PC to #2000
+ 89	    	     	;
+ 90	    	     		org	#2000
+ 91	    	     	SCRStart
+ 92	    	     	;
+ 93	    	     	; Initialize device (Enable and Output)
+ 94	    	     	; Poll until buffer available (write done)
+ 95	    	     	;
+ 96	2000	9820		movlz	ScrCSR,A0	; A0 <- addr ScrCSR (0004)
+ 97	    	     	;
+ 98	    	     	; Initialize device
+ 99	    	     	;
+100	2002	9080		movlz	SCRinit,R0	; R0 <- SCRinp (ENA=1, I/O=0)
+101	2004	4940		st.b	R0,A0		; [ScrCSR] <- SCRinit
+102	    	     	;
+103	    	     	; Write data to screen
+104	    	     	; SCRdata <- character
+105	    	     	;
+106	2006	92C1		movlz	'X',R1		; R1 <- 'X'
+107	2008	E0C8		str.b	R1,A0,$1	; [A0 + 1] <- R0
+108	    	     	;
+109	    	     	; Poll for output done (buffer available)
+110	    	     	; Count number of times through loop
+111	    	     	;
+112	200A	9002		movlz	#0,R2		; R2 <- 0 (poll count)
+113	    	     	;
+114	    	     	; DBA = 0: SCR busy
+115	    	     	; DBA = 1: SCR ready
+116	    	     	;
+117	    	     	SCRPoll
+118	200C	4140		ld.b	A0,R0		; R0 <- [ScrCSR]
+119	200E	3990		bit	SCRdba,R0	; SCR DBA set?
+120	2010	2410		cex	EQ,$2,$0	; Equal to zero?
+121	2012	318A		add	#1,R2		; 0: Incr poll count
+122	2014	23FB		br	SCRPoll		; 0: repeat poll
+123	    	     	;
+124	    	     	; Write data to screen
+125	    	     	; SCRdata <- character
+126	    	     	;
+127	2016	92C9		movlz	'Y',R1		; R1 <- 'Y'
+128	2018	E0C8		str.b	R1,A0,$1	; [A0 + 1] <- R0
+129	    	     	;
+130	    	     	; 'Y' should appear here if no breakpoint (^C to exit)
+131	    	     	SCRDone
+132	201A	23FF		br	SCRDone		; ^C here, check R2
+133	    	     	;
+134	    	     	;
+135	    	     	; **********************************************
+136	    	     	;
+137	    	     	; Clock (timer) example
+138	    	     	;
+139	    	     	; CLKdata is different from KB or SCR:
+140	    	     	; Input device (when clock expires)
+141	    	     	; Write to data register to specify millisecond clock divisor
+142	    	     	;
+143	    	     	; CLKdata indicates ticks per second (approx)
+144	    	     	;
+145	    	     	; CLKdata = 1 (or 0) -  1 'tick' = ~1 second
+146	    	     	; CLKdata = FF (255) - 255 'ticks' = ~3.9 milliseconds
+147	    	     	;
+148	    	     	; Variable clock limit (1 to 255)
+149	    	     	; # of clock tick per second
+150	    	     	;
+151	    	     		org	#20
+152	0020	0001	TPS	byte	#1	; Default 1 second
+153	    	     	;
+154	    	     	; Set PC to #3000
+155	    	     	;
+156	    	     		org	#3000
+157	    	     	CLKStart
+158	    	     	;
+159	    	     	; Initialize device (Enable and Input)
+160	    	     	; Poll until buffer available (time expired)
+161	    	     	;
+162	3000	9800		movlz	ClkCSR,A0	; A0 <- addr ClkCSR (0006)
+163	    	     	;
+164	    	     	; Initialize device
+165	    	     	; Three step process:
+166	    	     	; 1. Disable clock
+167	    	     	; 2. Initialize divisor
+168	    	     	; 3. Enable device
+169	    	     	;
+170	    	     	; 1. Disable CLK
+171	    	     	;
+172	3002	9000		movlz	CLKdis,R0	; R0 <- CLKdis 
+173	3004	4940		st.b	R0,A0		; [ClkCSR] <- CLKdis
+174	    	     	;
+175	    	     	; 2. Initialize
+176	    	     	;
+177	    	     	; Set ClkDR for #ticks/sec
+178	    	     	;
+179	3006	9901		movlz	TPS,A1
+180	3008	4148		ld.b	A1,R0		; R0 <- Ticks per second
+181	300A	E0C0		str.b	R0,A0,$1	; [ClkDR] <- R0 (TPS)
+182	    	     	;
+183	    	     	; 3. Enable device
+184	    	     	;
+185	300C	9080		movlz	CLKena,R0	; R0 <- CLKena (ENA=1)
+186	300E	4940		st.b	R0,A0		; [ClkCSR] <- CLKena
+187	    	     	;
+188	    	     	; Write data to screen (start of timing)
+189	    	     	; Enable screen device
+190	    	     	; SCRdata <- character
+191	    	     	;
+192	3010	9821		movlz	ScrCSR,A1	; A1 <- addr of ScrCSR
+193	3012	9081		movlz	SCRinit,R1	; R1 <- screen ENA
+194	3014	4949		st.b	R1,A1
+195	3016	9209		movlz	'A',R1		; R1 <- 'A'
+196	3018	E0C9		str.b	R1,A1,$1	; [A1+1] <- R0
+197	    	     	;
+198	    	     	; Poll for output done (buffer available)
+199	    	     	; Count number of times through loop
+200	    	     	;
+201	301A	9002		movlz	#0,R2		; R2 <- 0 (poll count)
+202	    	     	;
+203	    	     	; DBA = 0: Clock < stop time
+204	    	     	; DBA = 1: Clock >= stop time
+205	    	     	;
+206	    	     	CLKPoll
+207	301C	4140		ld.b	A0,R0		; R0 <- [ClkCSR]
+208	301E	3990		bit	CLKdba,R0	; CLK DBA set?
+209	3020	2410		cex	EQ,$2,$0	; Equal to zero?
+210	3022	318A		add	#1,R2		; 0: Incr poll count
+211	3024	23FB		br	CLKPoll		; 0: repeat poll
+212	    	     	;
+213	    	     	; Write data to screen (end of timing)
+214	    	     	; SCRdata <- character
+215	    	     	;
+216	3026	92D1		movlz	'Z',R1		; R1 <- 'Z'
+217	3028	E0C9		str.b	R1,A1,$1	; [A1+1] <- R0
+218	    	     	CLKDone
+219	302A	23FF		br	CLKDone		; Put Breakpoint here, check R2
+220	    	     	;
+221	    	     		end
+
+Successful completion of assembly - 1P
+
+** Symbol table **
+Name                               	Type	Value	Decimal
+CLKDone                            	REL	302A	12330	PRI
+CLKPoll                            	REL	301C	12316	PRI
+CLKStart                           	REL	3000	12288	PRI
+TPS                                	REL	0020	32	PRI
+SCRDone                            	REL	201A	8218	PRI
+SCRPoll                            	REL	200C	8204	PRI
+SCRStart                           	REL	2000	8192	PRI
+KBDone                             	REL	1014	4116	PRI
+KBPoll                             	REL	1008	4104	PRI
+KBStart                            	REL	1000	4096	PRI
+ScrDR                              	REL	0005	5	PRI
+ScrCSR                             	REL	0004	4	PRI
+KbDR                               	REL	0003	3	PRI
+KbCSR                              	REL	0002	2	PRI
+ClkDR                              	REL	0001	1	PRI
+ClkCSR                             	REL	0000	0	PRI
+SCRdba                             	CON	0002	2	PRI
+KBdba                              	CON	0002	2	PRI
+CLKdba                             	CON	0002	2	PRI
+SCRinit                            	CON	0010	16	PRI
+KBinit                             	CON	0012	18	PRI
+CLKena                             	CON	0010	16	PRI
+CLKdis                             	CON	0000	0	PRI
+PC                                 	AREG	000F	15	PRI
+SP                                 	AREG	000E	14	PRI
+LR                                 	AREG	000D	13	PRI
+BP                                 	AREG	000C	12	PRI
+A7                                 	AREG	000F	15	PRI
+A6                                 	AREG	000E	14	PRI
+A5                                 	AREG	000D	13	PRI
+A4                                 	AREG	000C	12	PRI
+A3                                 	AREG	000B	11	PRI
+A2                                 	AREG	000A	10	PRI
+A1                                 	AREG	0009	9	PRI
+A0                                 	AREG	0008	8	PRI
+R7                                 	DREG	0007	7	PRI
+R6                                 	DREG	0006	6	PRI
+R5                                 	DREG	0005	5	PRI
+R4                                 	DREG	0004	4	PRI
+R3                                 	DREG	0003	3	PRI
+R2                                 	DREG	0002	2	PRI
+R1                                 	DREG	0001	1	PRI
+R0                                 	DREG	0000	0	PRI
+
+.XME file: C:\Users\Jasper Grant\Documents\ComputerArchitecture\Assignment-1\cmake-build-debug\DevEx.xme
+

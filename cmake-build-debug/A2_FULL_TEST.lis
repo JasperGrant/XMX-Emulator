@@ -1,0 +1,169 @@
+X-Makina Assembler - Version XMX Assembler - Release 22.05.10.00
+Input file name: A2_FULL_TEST.asm
+Time of assembly: Tue 5 Jul 2022 22:18:02 
+  1	    	     	;
+  2	    	     	; Assignment 2 test program
+  3	    	     	; Test functionality of ADDA, SUBA, and CMPA instruction
+  4	    	     	;
+  5	    	     	org #1000
+  6	    	     	MAIN
+  7	    	     	; test ADDA instruction
+  8	1000	A558		MOVLS #AB,R0	; R0 <- 0xFFAB
+  9	1002	9800		MOVLZ #0,A0		; A0 <- 0x0000
+ 10	    	     	ADDS	AADD.B R0,A0	; A0.lsb <- R0.lsb <- 0x00AB
+			**** Expecting INST or DIR
+ 11	    	     	
+ 12	1004	9801		MOVLZ #0,A1		; A1 <- 0x0000
+ 13	1006	A802		MOVLS #0,A2		; A2 <- 0xFF00
+ 14	    	     		AADD $32,A1		; A1 <- 0x0000 + 0x0020
+			**** Invalid symbol in instruction or directive
+ 15	    	     		AADD #10,A2		; A2 <- 0xFF00 + 0x0010
+			**** Duplicate label
+ 16	    	     	
+ 17	1008	89A6		MOVL #34,SP	
+ 18	100A	B896		MOVH #1200,SP	; SP <- 0x1234
+ 19	100C	890C		MOVL #21,BP
+ 20	100E	BA1C		MOVH #4300,BP	; BP <- 0x4321
+ 21	    	     		AADD.W SP,BP	; BP <- BP + SP = 0x5555
+			**** Expecting INST or DIR
+ 22	    	     	
+ 23	    	     	
+ 24	    	     	; SET BP for 0x1018
+ 25	    	     	; A0 should be 0x00AB
+ 26	    	     	; A1 should be 0x0020
+ 27	    	     	; A2 should be 0xFF10
+ 28	    	     	; BP should be 0x5555
+ 29	    	     	
+ 30	1010	1FFF		BL CLEARREG
+ 31	1012	9805		MOVLZ #00,LR
+ 32	    	     	
+ 33	    	     	;test SUBA instruction
+ 34	1014	A440		MOVLS #88,R0	; R0 <- 0xFF88
+ 35	1016	9CB8		MOVLZ #97,A0	; A0 <- 0x0097
+ 36	    	     	SUBS	ASUB.B R0,A0	; A0.lsb <- A0.lsb - R0.lsb <- 0x000F
+			**** Expecting INST or DIR
+ 37	    	     	
+ 38	1018	9801		MOVLZ #0,A1		; A1 <- 0x0000
+ 39	101A	AFFA		MOVLS #FF,A2	; A2 <- 0xFFFF
+ 40	    	     		ASUB $1,A1		; A1 <- 0x0000 - 0x0001 = 0xFFFF
+			**** Invalid symbol in instruction or directive
+ 41	    	     		ASUB #10,A2		; A2 <- 0xFFFF - 0x0010 = 0xFFEF
+			**** Duplicate label
+ 42	    	     	
+ 43	101C	89A6		MOVL #34,SP	
+ 44	101E	B896		MOVH #1200,SP	; SP <- 0x1234
+ 45	1020	890C		MOVL #21,BP
+ 46	1022	BA1C		MOVH #4300,BP	; BP <- 0x4321
+ 47	    	     		ASUB.W SP,BP	; BP <- BP - SP = 0x30ED
+			**** Expecting INST or DIR
+ 48	    	     	
+ 49	    	     	; SET BP for 0x1034
+ 50	    	     	; A0 should be 0x000F
+ 51	    	     	; A1 should be 0xFFFF
+ 52	    	     	; A2 should be 0xFFEF
+ 53	    	     	; BP should be 0x30ED
+ 54	    	     	
+ 55	1024	1FFF		BL CLEARREG
+ 56	1026	9805		MOVLZ #00,LR
+ 57	    	     	
+ 58	    	     	; CMPA instruction tests
+ 59	1028	A008		MOVLS #01,R0	; R0 <- 0xFF01
+ 60	102A	9808		MOVLZ #01,A0	; A0 <- 0x0001
+ 61	    	     	CMPS	ACMP.B R0,A0	; A0 == R0?
+			**** Expecting INST or DIR
+ 62	    	     	
+ 63	102C	2409		CEX EQ,$1,$1	; should be true	
+ 64	102E	9009		MOVLZ $1,R1		; True condition, R1 <- 0x0001
+ 65	1030	900A		MOVLZ $1,R2		; False condition, R2 <- 0x0001
+ 66	    	     	
+ 67	1032	9801		MOVLZ #00,A1	; A1 <- 0x0000
+ 68	1034	AFFA		MOVLS #FF,A2	; A2 <- 0xFFFF
+ 69	    	     		ACMP.W A1,A2	; A1 == A2?
+			**** Expecting INST or DIR
+ 70	1036	2409		CEX EQ,$1,$1	; should be false
+ 71	1038	900B		MOVLZ $1,R3		; True condition, R3 <- 0x0001
+ 72	103A	900C		MOVLZ $1,R4		; False condition, R4 <- 0x0001
+ 73	    	     	
+ 74	103C	9904		MOVLZ #20,BP	; BP <- 0x0020
+ 75	    	     		ACMP #20,BP		; BP == 0x20?
+			**** Invalid symbol in instruction or directive
+ 76	103E	2409		CEX EQ,$1,$1	; should be true
+ 77	1040	900D		MOVLZ $1,R5		; True condition, R5 <- 0x0001
+ 78	1042	900E		MOVLZ $1,R6		; False condition, R6 <- 0x0001
+ 79	    	     	
+ 80	1044	A885		MOVLS #10,LR	; LR <- 0xFF10
+ 81	    	     		ACMP #10,LR		; LR == 0x20?
+			**** Duplicate label
+ 82	1046	2409		CEX EQ,$1,$1	; should be false
+ 83	1048	900F		MOVLZ $1,R7		; True condition, R7 <- 0x0001
+ 84	104A	97FF		MOVLZ $-1,R7	; False condition, R7 <- 0x00FF
+ 85	    	     	
+ 86	    	     	; SET BP for 0x1064
+ 87	    	     	; R1 should be 0x0001
+ 88	    	     	; R2 should be 0x0000
+ 89	    	     	; R3 should be 0x0000
+ 90	    	     	; R4 should be 0x0001
+ 91	    	     	; R5 should be 0x0001
+ 92	    	     	; R6 should be 0x0000
+ 93	    	     	; R7 should be 0x00FF
+ 94	    	     	
+ 95	    	     	DONE
+ 96	104C	23FF		BR DONE ; busy wait loop
+ 97	    	     	
+ 98	    	     	org #1100
+ 99	    	     	CLEARREG
+100	    	     	;Subroutine to clear all registers except PC and LR
+101	1100	9000		MOVLZ #00,R0
+102	1102	9001		MOVLZ #00,R1
+103	1104	9002		MOVLZ #00,R2
+104	1106	9003		MOVLZ #00,R3
+105	1108	9004		MOVLZ #00,R4
+106	110A	9005		MOVLZ #00,R5
+107	110C	9006		MOVLZ #00,R6
+108	110E	9007		MOVLZ #00,R7
+109	1110	9800		MOVLZ #00,A0
+110	1112	9801		MOVLZ #00,A1
+111	1114	9802		MOVLZ #00,A2
+112	1116	9803		MOVLZ #00,A3
+113	1118	9804		MOVLZ #00,BP
+114	111A	9806		MOVLZ #00,SP
+115	111C	3DAF		MOV LR,PC
+116	    	     	
+117	    	     	END	MAIN
+
+First pass errors - assembly terminated
+
+** Symbol table **
+Name                               	Type	Value	Decimal
+DONE                               	REL	104C	4172	PRI
+ACMP                               	REL	103E	4158	PRI
+ACMP.W                             	REL	1036	4150	PRI
+CMPS                               	REL	102C	4140	PRI
+ASUB.W                             	REL	1024	4132	PRI
+ASUB                               	REL	101C	4124	PRI
+SUBS                               	REL	1018	4120	PRI
+CLEARREG                           	REL	1100	4352	PRI
+AADD.W                             	REL	1010	4112	PRI
+AADD                               	REL	1008	4104	PRI
+ADDS                               	REL	1004	4100	PRI
+MAIN                               	REL	1000	4096	PRI
+PC                                 	AREG	000F	15	PRI
+SP                                 	AREG	000E	14	PRI
+LR                                 	AREG	000D	13	PRI
+BP                                 	AREG	000C	12	PRI
+A7                                 	AREG	000F	15	PRI
+A6                                 	AREG	000E	14	PRI
+A5                                 	AREG	000D	13	PRI
+A4                                 	AREG	000C	12	PRI
+A3                                 	AREG	000B	11	PRI
+A2                                 	AREG	000A	10	PRI
+A1                                 	AREG	0009	9	PRI
+A0                                 	AREG	0008	8	PRI
+R7                                 	DREG	0007	7	PRI
+R6                                 	DREG	0006	6	PRI
+R5                                 	DREG	0005	5	PRI
+R4                                 	DREG	0004	4	PRI
+R3                                 	DREG	0003	3	PRI
+R2                                 	DREG	0002	2	PRI
+R1                                 	DREG	0001	1	PRI
+R0                                 	DREG	0000	0	PRI

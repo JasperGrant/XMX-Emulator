@@ -1,0 +1,109 @@
+//Accessing memory
+
+    printf("Test 1\n");
+    mar = 1000;
+    mbr = 0xFF;
+    bus(write, byte);
+    printf("Byte written at address %x: %x\n", mar, mbr);
+
+    mbr = 2; //Change mbr to make sure mbr is not simply keeping the address from last time
+
+    bus(read, byte);
+    printf("Byte read at address %x: %x\n", mar, mbr);
+
+    printf("Test 2\n");
+    mar = 2000;
+    mbr = 0xea;
+    bus(write, byte);
+    printf("Byte written at address %x: %x\n", mar, mbr);
+    mar = 2001;
+    mbr = 0xcd;
+    bus(write, byte);
+    printf("Byte written at address %x: %x\n", mar, mbr);
+
+    mbr = 2; //Change mbr to make sure mbr is not simply keeping the address from last time
+    mar = 2000;
+    bus(read, word);
+    printf("Word read at address %x: %x\n", mar, mbr);
+
+    printf("Test 3\n");
+    mar = 2000;
+    mbr = 0xcdbe;
+    bus(write, word);
+    printf("Word written at address %x: %x\n", mar, mbr);
+
+    mbr = 2; //Change mbr to make sure mbr is not simply keeping the address from last time
+    mar = 2000;
+    bus(read, word);
+    printf("Word read at address %x: %x\n", mar, mbr);
+
+    printf("Test 4\n");
+    mar = 3000;
+    mbr = 0xcdbe;
+    bus(write, word);
+    printf("Word written at address %x: %x\n", mar, mbr);
+
+    mar = 3000;
+    bus(read, byte);
+    printf("Byte read at address %x: %x\n", mar, mbr);
+
+    mar = 3001;
+    bus(read, byte);
+    printf("Byte read at address %x: %x\n", mar, mbr);
+
+    //The register file
+
+    init_registers();
+
+    printf("Test 5\n");
+    printf("Constant 6 value is : %x\n", registers[1][6]);
+
+    printf("Test 6\n");
+    registers[0][7].word = 0xfefd;
+    printf("Word written to register 7: %4x\n", registers[0][7].word);
+    printf("Byte read from register 7: %2x\n", registers[0][7].byte[0]);
+
+    printf("Test 7\n");
+    registers[0][3].byte[0] = 0xfe;
+    printf("Word written to register 7: %4x\n", registers[0][3].word);
+    printf("Byte read from register 7: %2x\n", registers[0][3].byte[0]);
+    printf("Byte read from register 7: %2x\n", registers[0][3].byte[1]);
+
+    printf("Test 8\n");
+    registers[0][4].word = registers[1][4].word;
+    printf("Word written to register 7: %4x\n", registers[0][4].word);
+
+    //Updating the PSW
+
+    printf("Test 9\n");
+    printf("%x + ", 0b11);
+    printf("%x = ", 0b1);
+    printf("%x\n", 0b100);
+    update_psw(0b11, 0b1, 0b100, 0);
+
+    printPSW();
+
+    printf("Test10\n");
+    printf("%x + ", 0b10000000);
+    printf("%x = ", 0b10000000);
+    printf("%x\n", 0b00000000);
+    update_psw(0b10000000, 0b10000000, 0b00000000, 1);
+
+    printPSW();
+
+    printf("Test 11\n");
+    printf("%x - ", 0b10000000);
+    printf("%x = ", 0b10000000);
+    printf("%x\n", 0b00000000);
+    update_psw(0b10000000, 0b10000000, 0b00000000, 1);
+
+    printPSW();
+
+    printf("Test 12\n");
+    printf("%x - ", 0b00000001);
+    printf("%x = ", 0b00000010);
+    printf("%x\n", -0b00000001);
+    update_psw(0b00000001, 0b00000010, -0b00000001, 1);
+
+    printPSW();
+

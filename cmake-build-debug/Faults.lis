@@ -1,0 +1,364 @@
+X-Makina Assembler - Version XMX Assembler - Release 22.05.10.00
+Input file name: Faults.asm
+Time of assembly: Tue 26 Jul 2022 11:40:35 
+  1	    	     	;
+  2	    	     	; Fault and trap tests
+  3	    	     	; Test XMX faults and trap
+  4	    	     	;
+  5	    	     	; Ask user for fault test 
+  6	    	     	; 1 - ill inst; 2 - ill addr; 3 - priority; default - trap
+  7	    	     	;
+  8	    	     	; Samples:
+  9	    	     	;
+ 10	    	     	; Illegal instruction
+ 11	    	     	;	word	#7FFF	; HCF
+ 12	    	     	;
+ 13	    	     	; Illegal address
+ 14	    	     	;	movl	#1,PC	; PC <- odd address
+ 15	    	     	;
+ 16	    	     	; Priority fault
+ 17	    	     	;	setpri	#2	; Lower it
+ 18	    	     	;	setpri	#4	; Attempt to raise it
+ 19	    	     	;
+ 20	    	     	; Double fault (FB):
+ 21	    	     	; First, cause a fault using any of the above
+ 22	    	     	; Second, cause a second fault in the exception handler
+ 23	    	     	;
+ 24	    	     	; Larry Hughes
+ 25	    	     	; 5 Jul 22 - XMX revisions and cosmetic changes
+ 26	    	     	; 1 Jul 21 - First version
+ 27	    	     	;
+ 28	    	     	; ************************************************************************
+ 29	    	     	;
+ 30	    	     	; Equates
+ 31	    	     	;
+ 32	    	     	NUL	equ	#0	; NUL char
+ 33	    	     	SCR_SET	equ	#10	; SCR initialization: ENA=1, I/O=0, IE=0
+ 34	    	     	SCR_DBA	equ	#4	; SCR - data buffer available status bit (output)
+ 35	    	     	KB_SET	equ	#12	; KB initialization: ENA=1, I/O=1, IE=0
+ 36	    	     	KB_DBA	equ	#4	; KB - data byte available status bit (input)
+ 37	    	     	;
+ 38	    	     	; System faults vector addresses
+ 39	    	     	; Word pairs: PSW and Handler Entry Point
+ 40	    	     	;
+ 41	    	     	ILL_INST	equ	#FFE0	; Illegal instruction vector (8)
+ 42	    	     	ILL_ADDR	equ	#FFE4	; Illegal PC address vector (9)
+ 43	    	     	PRI_FLT		equ	#FFE8	; Priority fault vector (10)
+ 44	    	     	DBL_FLT		equ	#FFEC	; Double fault (11)
+ 45	    	     	OS_ENTRY	equ	#FFF0	; O/S entry point
+ 46	    	     	ILL_VECT13	equ	#FFF4	; Not used
+ 47	    	     	ILL_VECT14	equ	#FFF8	; Not used
+ 48	    	     	RESET_VECT	equ	#FFFC	; Reset vector
+ 49	    	     	;
+ 50	    	     	STK_TOP		equ	#FF00
+ 51	    	     	;
+ 52	    	     	; ************************************************************************
+ 53	    	     	; Device memory
+ 54	    	     	; ************************************************************************
+ 55	    	     	; 
+ 56	    	     		org	#0
+ 57	0000	0000	ClkCSR	bss	$1	; Clock
+ 58	0001	0000	ClkDR	bss	$1
+ 59	0002	0000	KbCSR	bss	$1	; Keyboard
+ 60	0003	0000	KbDR	bss	$1
+ 61	0004	0000	ScrCSR	bss	$1	; Screen
+ 62	0005	0000	ScrDR	bss	$1
+ 63	    	     	;
+ 64	    	     	; ************************************************************************
+ 65	    	     	; Interrupt vector table
+ 66	    	     	; ************************************************************************
+ 67	    	     	;
+ 68	    	     	; Exception addresses
+ 69	    	     	;
+ 70	    	     	; Uses vector 12 (clock ISR) for SVC since SVC can trap to any of
+ 71	    	     	; the 16 vectors (15 plus reset).
+ 72	    	     	; Vector contains new PSW (word 0) and new PC (address of ISR or
+ 73	    	     	; exception ISR in this case).
+ 74	    	     	;
+ 75	    	     	; Vectors 0 to 7 (including device vectors) omitted
+ 76	    	     	;
+ 77	    	     	; Vector 8 - Illegal Instruction
+ 78	    	     		org	ILL_INST	; 8
+ 79	FFE0	00E0		word	#00E0
+ 80	FFE2	FF04		word	Ill_Inst
+ 81	    	     	; Vector 9 - Illegal Address
+ 82	    	     		org	ILL_ADDR	; 9
+ 83	FFE4	00E0		word	#00E0
+ 84	FFE6	FF08		word	Ill_Addr
+ 85	    	     	; Vector 10 - Priority Fault
+ 86	    	     		org	PRI_FLT		; 10
+ 87	FFE8	00E0		word	#00E0		; Priority 7 - highest
+ 88	FFEA	FF0C		word	PriFault
+ 89	    	     	; Vector 11 - Double Fault
+ 90	    	     		org	DBL_FLT		; 11
+ 91	FFEC	00E0		word	#00E0		; Priority 7 - highest
+ 92	FFEE	FF10		word	DblFault
+ 93	    	     	; Vector 12 - SVC
+ 94	    	     		org	OS_ENTRY
+ 95	FFF0	00C0		word	#00C0		; Priority 6
+ 96	FFF2	FF00		word	OS_EP
+ 97	    	     	;
+ 98	    	     	; Reset vector
+ 99	    	     	;
+100	    	     		org	RESET_VECT
+101	FFFC	4060		word	#4060	; Prev: 2, Curr: 3
+102	FFFE	0600		word	Reset	; Reset address the program
+103	    	     	;
+104	    	     	; ************************************************************************
+105	    	     	; Code
+106	    	     	; ************************************************************************
+107	    	     	;
+108	    	     		org	#600
+109	    	     	;
+110	    	     	; Reset entry point
+111	    	     	; Fault reset; PrevPri = 2; CurrPri = 3
+112	    	     	; Should reset machine
+113	    	     	;
+114	0600	3C00	Reset	mov	R0,R0		; Busy wait (for ^C)
+115	0602	23FE		br	Reset
+116	    	     	;
+117	    	     	; ************************************************************************
+118	    	     	; Mainline
+119	    	     	; ************************************************************************
+120	    	     	;
+121	    	     		org	#1000
+122	    	     	;
+123	    	     	; Get input, select fault (1, 2, 3).
+124	    	     	; None of these, default trap
+125	    	     	;
+126	    	     	Start
+127	    	     	;
+128	    	     	; Create stack
+129	    	     	;
+130	1000	8806		movl	STK_TOP,SP
+131	1002	BFFE		movh	STK_TOP,SP
+132	    	     	;
+133	    	     	; Useful marker
+134	    	     	;
+135	1004	A805		movls	$0,LR	; Show on stack as FF00
+136	    	     	;
+137	    	     	; Change priority to 2 (startup is 7)
+138	    	     	;
+139	1006	2812		setpri	#2
+140	    	     	;
+141	    	     	; Wait for KB input to select action
+142	    	     	; 1 (inst), 2 (addr), 3 (pri), otherwise Trap
+143	    	     	;
+144	1008	9810		movlz	KbCSR,A0
+145	100A	9090		movlz	KB_SET,R0
+146	100C	4940		st.b	R0,A0		; KB enabled
+147	    	     	;
+148	    	     	; Wait for keystroke
+149	    	     	;
+150	    	     	KbWait
+151	100E	4100		ld	A0,R0		; KbCSR (A0) -> R0
+152	1010	3798		and	KB_DBA,R0	; DBA set?
+153	1012	2408		cex	eq,#1,#0	; =0?
+154	1014	23FC		br	KbWait		; Yes, poll again
+155	    	     	;
+156	    	     	; Read character
+157	    	     	;
+158	1016	C0C1		ldr.b	A0,#1,R1	; R1 = ch entered
+159	    	     	;
+160	    	     	; Determine fault
+161	    	     	;
+162	1018	9188		movlz	'1',R0
+163	101A	3541		cmp.b	R0,R1		; R1 = '1'?
+164	101C	2408		cex	eq,#1,#0
+165	    	     	;
+166	101E	7FFF		word	#7FFF		; Yes: Illegal Instruction test
+167	    	     	;
+168	1020	9190		movlz	'2',R0
+169	1022	3541		cmp.b	R0,R1
+170	1024	2408		cex	eq,#1,#0	; ='2'?
+171	    	     	;
+172	1026	980F		movlz	#1,PC		; Yes: Illegal Address test
+173	    	     	;
+174	1028	9198		movlz	'3',R0
+175	102A	3541		cmp.b	R0,R1
+176	102C	2408		cex	eq,#1,#0	; ='3'?
+177	    	     	;
+178	102E	2815		setpri	#5		; Yes: Priority fault (currently 2)
+179	    	     	;
+180	    	     	; None of the above, do a trap
+181	    	     	;
+182	    	     	; SVC - Call to O/S
+183	    	     	;
+184	1030	97F8		movlz	#FF,R0		; R0 = 00FF 
+185	1032	282C		svc	$12		; Trap through vector 12
+186	    	     	;
+187	    	     	; Return here
+188	    	     	; Check R0, should be FFAA
+189	    	     	;
+190	    	     	TrapStop
+191	1034	2848		setcc	s		; Put CPU to sleep - wait for ^C
+192	1036	23FE		br	TrapStop
+193	    	     	;
+194	    	     	; ************************************************************************
+195	    	     	; Handler code in high memory
+196	    	     	; ************************************************************************
+197	    	     	;
+198	    	     		org	#ff00
+199	    	     	;
+200	    	     	; SVC $12 to Trap Entry 
+201	    	     	; For example, entry to Operating System
+202	    	     	;
+203	    	     	OS_EP
+204	FF00	A550		movls	#AA,R0	; R0 = FFAA to indicate SVC successful
+205	FF02	3DAF		mov	LR,PC
+206	    	     	;
+207	    	     	; ************************************************************************
+208	    	     	;
+209	    	     	; Fault handlers
+210	    	     	; Display message and stop processing
+211	    	     	;
+212	    	     	; ILL_INST (8) - illegal instruction
+213	    	     	; 
+214	    	     	Ill_Inst
+215	FF04	A992		movls	Ill_msg,A2
+216	FF06	2006		br	FltMsg_Disp
+217	    	     	;
+218	    	     	; ILL_ADDR (9) - illegal address (PC on odd boundary)
+219	    	     	;
+220	    	     	Ill_Addr
+221	FF08	AA12		movls	Ill_adr,A2
+222	FF0A	2004		br	FltMsg_Disp
+223	    	     	;
+224	    	     	; PRI_FLT (10) - Priority fault - priority X to a priority < X
+225	    	     	;
+226	    	     	PriFault
+227	FF0C	AA92		movls	Pri_flt,A2
+228	FF0E	2002		br	FltMsg_Disp
+229	    	     	;
+230	    	     	; DBL_FLT (11) - Double fault
+231	    	     	;
+232	    	     	DblFault
+233	FF10	AB0A		movls	Dbl_flt,A2
+234	FF12	2000		br	FltMsg_Disp
+235	    	     	;
+236	    	     	; ************************************************************************
+237	    	     	;
+238	    	     	; Fault display message
+239	    	     	; Polled output, not interrupt driven (in case fault in ISR code)
+240	    	     	; A2 contains address of message
+241	    	     	;
+242	    	     	FltMsg_Disp
+243	    	     	;
+244	FF14	9820		movlz	ScrCSR,A0	; A0 = addr ScrCSR
+245	FF16	8081		movl	SCR_SET,R1	; R1 = SCR_SET
+246	FF18	4948		st.b	R1,A0		; [ScrCSR] = SCR_SET
+247	    	     	Flt_Disp0
+248	FF1A	4553		ld.b	A2+,R3		; R3 = [R2]; R2++
+249	FF1C	35C3		cmp.b	NUL,R3		; R3 = 0 ?
+250	FF1E	2408		cex	eq,$1,$0	; eq?
+251	FF20	2006		br	Flt_Disp2	; Yes: Goto Flt_Disp2 
+252	    	     	Flt_Disp1
+253	FF22	4141		ld.b	A0,R1		; R1 = [ScrCSR]
+254	FF24	37D9		and.b	SCR_DBA,R1	; R1.DBA = 1?
+255	FF26	2408		cex	eq,$1,$0	; No (=0)
+256	FF28	23FC		br	Flt_Disp1
+257	    	     	; Output
+258	FF2A	E0D8		str.b	R3,A0,$1	; [ScrDR] = R2
+259	FF2C	23F6		br	Flt_Disp0
+260	    	     	;
+261	    	     	Flt_Disp2
+262	FF2E	2848		setcc	s		; put CPU to sleep
+263	FF30	23FE		br	Flt_Disp2
+264	    	     	;
+265	FF32	6C49	Ill_msg	ascii	"Illegal message\0"
+265	FF34	656C
+265	FF36	6167
+265	FF38	206C
+265	FF3A	656D
+265	FF3C	7373
+265	FF3E	6761
+265	FF40	0065
+266	FF42	6C49	Ill_adr	ascii	"Illegal address\0"
+266	FF44	656C
+266	FF46	6167
+266	FF48	206C
+266	FF4A	6461
+266	FF4C	7264
+266	FF4E	7365
+266	FF50	0073
+267	FF52	7250	Pri_flt	ascii	"Priority fault\0"
+267	FF54	6F69
+267	FF56	6972
+267	FF58	7974
+267	FF5A	6620
+267	FF5C	7561
+267	FF5E	746C
+267	FF60	0000
+268	FF61	6F44	Dbl_flt	ascii	"Double fault\0"
+268	FF63	6275
+268	FF65	656C
+268	FF67	6620
+268	FF69	7561
+268	FF6B	746C
+268	FF6D	0000
+269	    	     	;
+
+Successful completion of assembly - 2P
+
+** Symbol table **
+Name                               	Type	Value	Decimal
+Flt_Disp1                          	REL	FF22	-222	PRI
+Flt_Disp2                          	REL	FF2E	-210	PRI
+Flt_Disp0                          	REL	FF1A	-230	PRI
+Dbl_flt                            	REL	FF61	-159	PRI
+Pri_flt                            	REL	FF52	-174	PRI
+Ill_adr                            	REL	FF42	-190	PRI
+FltMsg_Disp                        	REL	FF14	-236	PRI
+Ill_msg                            	REL	FF32	-206	PRI
+TrapStop                           	REL	1034	4148	PRI
+KbWait                             	REL	100E	4110	PRI
+Start                              	REL	1000	4096	PRI
+Reset                              	REL	0600	1536	PRI
+OS_EP                              	REL	FF00	-256	PRI
+DblFault                           	REL	FF10	-240	PRI
+PriFault                           	REL	FF0C	-244	PRI
+Ill_Addr                           	REL	FF08	-248	PRI
+Ill_Inst                           	REL	FF04	-252	PRI
+ScrDR                              	REL	0005	5	PRI
+ScrCSR                             	REL	0004	4	PRI
+KbDR                               	REL	0003	3	PRI
+KbCSR                              	REL	0002	2	PRI
+ClkDR                              	REL	0001	1	PRI
+ClkCSR                             	REL	0000	0	PRI
+STK_TOP                            	CON	FF00	-256	PRI
+RESET_VECT                         	CON	FFFC	-4	PRI
+ILL_VECT14                         	CON	FFF8	-8	PRI
+ILL_VECT13                         	CON	FFF4	-12	PRI
+OS_ENTRY                           	CON	FFF0	-16	PRI
+DBL_FLT                            	CON	FFEC	-20	PRI
+PRI_FLT                            	CON	FFE8	-24	PRI
+ILL_ADDR                           	CON	FFE4	-28	PRI
+ILL_INST                           	CON	FFE0	-32	PRI
+KB_DBA                             	CON	0004	4	PRI
+KB_SET                             	CON	0012	18	PRI
+SCR_DBA                            	CON	0004	4	PRI
+SCR_SET                            	CON	0010	16	PRI
+NUL                                	CON	0000	0	PRI
+PC                                 	AREG	000F	15	PRI
+SP                                 	AREG	000E	14	PRI
+LR                                 	AREG	000D	13	PRI
+BP                                 	AREG	000C	12	PRI
+A7                                 	AREG	000F	15	PRI
+A6                                 	AREG	000E	14	PRI
+A5                                 	AREG	000D	13	PRI
+A4                                 	AREG	000C	12	PRI
+A3                                 	AREG	000B	11	PRI
+A2                                 	AREG	000A	10	PRI
+A1                                 	AREG	0009	9	PRI
+A0                                 	AREG	0008	8	PRI
+R7                                 	DREG	0007	7	PRI
+R6                                 	DREG	0006	6	PRI
+R5                                 	DREG	0005	5	PRI
+R4                                 	DREG	0004	4	PRI
+R3                                 	DREG	0003	3	PRI
+R2                                 	DREG	0002	2	PRI
+R1                                 	DREG	0001	1	PRI
+R0                                 	DREG	0000	0	PRI
+
+.XME file: C:\Users\Jasper Grant\Documents\ComputerArchitecture\Assignment-1\cmake-build-debug\Faults.xme
+

@@ -1,0 +1,164 @@
+X-Makina Assembler - Version XMX Assembler - Release 22.05.10.00
+Input file name: input_modified.asm
+Time of assembly: Tue 28 Jun 2022 11:23:49 
+  1	    	     	;
+  2	    	     	; A1 test 3
+  3	    	     	;
+  4	    	     	StkTop	equ	#3000
+  5	    	     	;
+  6	    	     		org	#1000
+  7	    	     	;
+  8	1000	8806	Start	movl	StkTop,SP
+  9	1002	B986		movh	StkTop,SP
+ 10	    	     	;
+ 11	1004	8C00		movl	InStr,A0
+ 12	1006	8DA1		movl	OutStr,A1
+ 13	1008	71F0		WORD #71f0 ;Wdawdwa eef
+ 14	100A	7511	label	WORD #7511
+ 15	100C	7988		WORD #7988
+ 16	    	     	;
+ 17	100E	0001		bl	ChgCase
+ 18	    	     	;
+ 19	    	     	Done
+ 20	1010	23FF		br	Done
+ 21	    	     	
+ 22	    	     	;
+ 23	    	     	; Change case UC -> lc and lc -> UL
+ 24	    	     	;
+ 25	    	     	; To upper: 000.0000  (6)
+ 26	    	     	; To lower: 100.0000  (6)
+ 27	    	     	;
+ 28	    	     	ChgCase
+ 29	1012	4C86		st	R0,-SP
+ 30	1014	4C8E		st	R1,-SP
+ 31	1016	4E86		st	A0,-SP
+ 32	1018	4E8E		st	A1,-SP
+ 33	    	     	;
+ 34	101A	8028		movl	#5,R0	; UC (0) / lc (1) bit
+ 35	    	     	;
+ 36	    	     	ChgCaseLoop
+ 37	101C	4541		ld.b	A0+,R1
+ 38	    	     	; NUL?
+ 39	101E	35C1		cmp.b	#0,R1
+ 40	1020	2408		cex	EQ,#1,#0
+ 41	1022	2006		br	ChgCaseEnd
+ 42	    	     	;
+ 43	1024	3901		bit	R0,R1
+ 44	1026	2409		cex	EQ,#1,#1
+ 45	    	     	; Set (UC -> lc)
+ 46	1028	3A01		bis	R0,R1	; b5 <- 1
+ 47	    	     	; Clr (lc -> UC)
+ 48	102A	3B01		bic	R0,R1	; b5 <- 0
+ 49	    	     	;
+ 50	102C	4D49		st.b	R1,A1+
+ 51	    	     	;
+ 52	102E	23F6		br	ChgCaseLoop
+ 53	    	     	;
+ 54	    	     	ChgCaseEnd
+ 55	1030	4D49		st.b	R1,A1+	; Store NUL
+ 56	    	     	;
+ 57	1032	4731		ld  SP+,A1
+ 58	1034	4730		ld	SP+,A0
+ 59	1036	4531		ld	SP+,R1
+ 60	1038	4530		ld	SP+,R0
+ 61	    	     	;
+ 62	103A	3DAF		mov	LR,PC
+ 63	    	     	;
+ 64	    	     	; Data
+ 65	    	     	;
+ 66	    	     		org	#80
+ 67	    	     	InStr
+ 68	0080	4241		ascii	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefhijklmnopqrstuvwxyz\0"
+ 68	0082	4443
+ 68	0084	4645
+ 68	0086	4847
+ 68	0088	4A49
+ 68	008A	4C4B
+ 68	008C	4E4D
+ 68	008E	504F
+ 68	0090	5251
+ 68	0092	5453
+ 68	0094	5655
+ 68	0096	5857
+ 68	0098	5A59
+ 68	009A	6261
+ 68	009C	6463
+ 68	009E	6665
+ 68	00A0	6968
+ 68	00A2	6B6A
+ 68	00A4	6D6C
+ 68	00A6	6F6E
+ 68	00A8	7170
+ 68	00AA	7372
+ 68	00AC	7574
+ 68	00AE	7776
+ 68	00B0	7978
+ 68	00B2	007A
+ 69	    	     	;
+ 70	    	     	OutStr
+ 71	00B4	3F3F		ascii	"????????????????????????????????????????????????????????"
+ 71	00B6	3F3F
+ 71	00B8	3F3F
+ 71	00BA	3F3F
+ 71	00BC	3F3F
+ 71	00BE	3F3F
+ 71	00C0	3F3F
+ 71	00C2	3F3F
+ 71	00C4	3F3F
+ 71	00C6	3F3F
+ 71	00C8	3F3F
+ 71	00CA	3F3F
+ 71	00CC	3F3F
+ 71	00CE	3F3F
+ 71	00D0	3F3F
+ 71	00D2	3F3F
+ 71	00D4	3F3F
+ 71	00D6	3F3F
+ 71	00D8	3F3F
+ 71	00DA	3F3F
+ 71	00DC	3F3F
+ 71	00DE	3F3F
+ 71	00E0	3F3F
+ 71	00E2	3F3F
+ 71	00E4	3F3F
+ 71	00E6	3F3F
+ 71	00E8	3F3F
+ 71	00EA	3F3F
+ 72	    	     	;
+
+Successful completion of assembly - 2P
+
+** Symbol table **
+Name                               	Type	Value	Decimal
+ChgCaseEnd                         	REL	1030	4144	PRI
+ChgCaseLoop                        	REL	101C	4124	PRI
+Done                               	REL	1010	4112	PRI
+ChgCase                            	REL	1012	4114	PRI
+label                              	REL	100A	4106	PRI
+OutStr                             	REL	00B4	180	PRI
+InStr                              	REL	0080	128	PRI
+Start                              	REL	1000	4096	PRI
+StkTop                             	CON	3000	12288	PRI
+PC                                 	AREG	000F	15	PRI
+SP                                 	AREG	000E	14	PRI
+LR                                 	AREG	000D	13	PRI
+BP                                 	AREG	000C	12	PRI
+A7                                 	AREG	000F	15	PRI
+A6                                 	AREG	000E	14	PRI
+A5                                 	AREG	000D	13	PRI
+A4                                 	AREG	000C	12	PRI
+A3                                 	AREG	000B	11	PRI
+A2                                 	AREG	000A	10	PRI
+A1                                 	AREG	0009	9	PRI
+A0                                 	AREG	0008	8	PRI
+R7                                 	DREG	0007	7	PRI
+R6                                 	DREG	0006	6	PRI
+R5                                 	DREG	0005	5	PRI
+R4                                 	DREG	0004	4	PRI
+R3                                 	DREG	0003	3	PRI
+R2                                 	DREG	0002	2	PRI
+R1                                 	DREG	0001	1	PRI
+R0                                 	DREG	0000	0	PRI
+
+.XME file: C:\Users\Jasper Grant\Documents\ComputerArchitecture\translator\cmake-build-debug\input_modified.xme
+
